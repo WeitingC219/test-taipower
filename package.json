@@ -1,6 +1,10 @@
 {
   "name": "test-taipower",
+<<<<<<< HEAD
   "version": "1.0.2",
+=======
+  "version": "1.0.1",
+>>>>>>> 52ab83e2edf1c395ac1f5d3e275d663407ef48a8
   "description": "",
   "main": "index.js",
   "scripts": {
