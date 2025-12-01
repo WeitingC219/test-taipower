@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/WeitingC219/test-taipower/compare/v1.1.0...v1.2.0) (2025-12-01)
+
+### Features
+
+- **index:** change hello world to 7 ([#18](https://github.com/WeitingC219/test-taipower/issues/18)) ([7527cfe](https://github.com/WeitingC219/test-taipower/commit/7527cfe2b72e7ca98534a671a9f04d642d7ed4d3))
+
 ## [1.1.0](https://github.com/WeitingC219/test-taipower/compare/v1.0.2...v1.1.0) (2025-12-01)
 
 ### Features
