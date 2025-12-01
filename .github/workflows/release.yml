@@ -5,17 +5,19 @@ on:
       - main
 
 permissions:
-  contents: write # Required to push commits and tags
+  contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  # 1. If this is a normal feature merge -> Create a Release PR
+  create-release-pr:
+    if: "!startsWith(github.event.head_commit.message, 'chore(release)')"
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'chore(release)')" # Prevent infinite loops
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for standard-version to analyze commits
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,8 +33,40 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create Release
-        run: npm run release
+      - name: Bump Version & Changelog (Dry Run for files)
+        # Updates package.json and CHANGELOG.md but skips commit/tag
+        run: npm run release -- --skip.commit --skip.tag
 
-      - name: Push Changes
-        run: git push --follow-tags origin main
+      - name: Get Next Version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(release): ${{ env.VERSION }}"
+          title: "chore(release): ${{ env.VERSION }}"
+          body: |
+            Automated release PR.
+            
+            This PR bumps the version and updates the changelog.
+            Merge this PR to trigger the release tag.
+          branch: "release/next"
+          delete-branch: true
+
+  # 2. If this IS a release merge (commit starts with 'chore(release)') -> Tag it
+  tag-release:
+    if: "startsWith(github.event.head_commit.message, 'chore(release)')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version from package.json
+        id: get_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Create & Push Tag
+        run: |
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}

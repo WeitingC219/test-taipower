@@ -38,9 +38,16 @@ When you are ready to release (e.g., merge to `main`):
     _Note: In a fully automated CI/CD pipeline (like GitHub Actions), this command runs automatically when code is pushed to `main`._
 
     **We have set up this automation for you!**
-    See `.github/workflows/release.yml`. It triggers on every push to `main`, calculates the version, and pushes the tags back.
+    See `.github/workflows/release.yml`.
+
+    **The New "Release PR" Flow:**
+    1.  **Feature Merged**: When you merge a feature to `main`, the Action runs.
+    2.  **PR Created**: It does NOT push directly. Instead, it creates a **Pull Request** (e.g., `chore(release): 1.1.0`).
+    3.  **Review**: You can review the changelog and version bump in this PR.
+    4.  **Merge**: When you merge this Release PR, the Action runs again to **Tag** the release (`v1.1.0`).
 
 2.  **Push the Release**:
+
     _(Skipped, handled by CI)_
     The CI/CD system pushes the new commit AND the new tag to the remote repository.
 
