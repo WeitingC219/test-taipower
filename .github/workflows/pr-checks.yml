@@ -117,7 +117,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: "--verbose --report-format=sarif --report-path=secret-gitleaks.sarif"
+          args: >
+            detect --source=. --no-git --verbose
+            --report-format sarif
+            --report-path=secret-gitleaks.sarif
 
       - name: List files for debug
         if: always()
