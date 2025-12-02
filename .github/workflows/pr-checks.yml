@@ -76,21 +76,29 @@ jobs:
           name: sast-codeql.sarif
           path: sast-codeql.sarif
 
-      - name: Fail job on HIGH or MEDIUM CodeQL findings
+      - name: Fail on MEDIUM/HIGH CodeQL findings
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
+          # 門檻：>= 4.0 就當成 medium 以上
+          threshold=4.0
 
-          # HIGH = security-severity >= 7.0
-          # MEDIUM = security-severity >= 4.0 and < 7.0
-          COUNT=$(jq '[.runs[].results[]
-              | select(.properties["security-severity"] != null)
-              | select(.properties["security-severity"] >= 4.0)
-              ] | length' sast-codeql.sarif)
+          count=$(jq --argjson threshold "$threshold" '
+            [
+              .runs[] as $run
+              | $run.results[] as $r
+              | $run.tool.driver.rules[$r.rule.index].properties."security-severity"
+              | select(. != null)
+              | tonumber
+              | select(. >= $threshold)
+            ] | length
+          ' sast-codeql.sarif)
 
-          echo "CodeQL HIGH/MEDIUM findings: $COUNT"
-          if [ "$COUNT" -gt 0 ]; then
-            echo "::error::CodeQL found HIGH or MEDIUM severity issues. Failing job."
+          echo "CodeQL findings (security-severity >= $threshold): $count"
+
+          if [ "$count" -gt 0 ]; then
+            echo "❌ Found CodeQL security findings (>= MEDIUM). Failing job."
             exit 1
+          else
+            echo "✅ No CodeQL findings >= MEDIUM."
           fi
 
 
