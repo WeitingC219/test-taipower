@@ -117,19 +117,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: "--verbose --report-format=sarif --report-path=secret-gitleaks.sarif"
+          args: >
+            detect --source=. --verbose 
+            --report-format=sarif 
+            --report-path=secret-gitleaks.sarif
+
+      - name: List files for debug
+        if: always()
+        run: ls -R
 
       - name: Upload Gitleaks to GitHub Security tab
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'secret-gitleaks.sarif'
-          category: 'gitleaks'
+          sarif_file: secret-gitleaks.sarif
+          category: gitleaks
 
       - name: Upload Gitleaks Artifacts
-        if: always() # Run even if Gitleaks finds secrets (fails)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: secret-gitleaks.sarif
           path: secret-gitleaks.sarif
-
