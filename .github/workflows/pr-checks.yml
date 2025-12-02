@@ -8,28 +8,31 @@ permissions:
   security-events: write # Required for uploading code scanning results (CodeQL/Trivy)
 
 jobs:
-  # # 1. Basic CI: Build & Test
-  # ci:
-  #   name: Basic CI (Build & Test)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  # 1. Basic CI: Build & Test
+  ci:
+    name: Basic CI (Build & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: '20'
-  #         cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-  #     - name: Install dependencies
-  #       run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-  #     - name: Run Tests
-  #       run: npm test
+      - name: Run Tests
+        run: npm test
 
-  #     - name: Build Project
-  #       run: npm run build
+      - name: Run Audit
+        run: npm audit --audit-level=high
+
+      - name: Build Project
+        run: npm run build
 
   # # 2. SAST: CodeQL (Source Code Analysis)
   # sast:
@@ -72,37 +75,37 @@ jobs:
   #         path: sast-codeql.sarif
 
 
-  # 3. SCA: Trivy (Dependency & Vulnerability Scanning)
-  sca:
-    name: SCA (Trivy)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # # 3. SCA: Trivy (Dependency & Vulnerability Scanning)
+  # sca:
+  #   name: SCA (Trivy)
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (Repo mode)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'sca-trivy.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+  #     - name: Run Trivy vulnerability scanner (Repo mode)
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'fs'
+  #         ignore-unfixed: true
+  #         format: 'sarif'
+  #         output: 'sca-trivy.sarif'
+  #         severity: 'CRITICAL,HIGH'
+  #         exit-code: '1'
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: always() 
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: 'sca-trivy.sarif'
-          category: 'trivy'
+  #     - name: Upload Trivy scan results to GitHub Security tab
+  #       if: always() 
+  #       uses: github/codeql-action/upload-sarif@v4
+  #       with:
+  #         sarif_file: 'sca-trivy.sarif'
+  #         category: 'trivy'
 
-      - name: Upload Trivy Artifacts
-        if: always() 
-        uses: actions/upload-artifact@v4
-        with:
-          name: sca-trivy.sarif
-          path: sca-trivy.sarif
+  #     - name: Upload Trivy Artifacts
+  #       if: always() 
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: sca-trivy.sarif
+  #         path: sca-trivy.sarif
 
 
   # # 4. Secret Scanning: Gitleaks
