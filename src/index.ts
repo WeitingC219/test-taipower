@@ -10,7 +10,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// Only start the server if this file is run directly
 if (require.main === module) {
   server.listen(3000, () => {
     console.log('Server running at http://localhost:3000/');

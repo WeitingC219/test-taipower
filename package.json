@@ -4,22 +4,25 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node dist/index.js",
+    "start": "node dist/index.js",
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "jest",
-    "prepare": "husky",
+    "secretlint": "secretlint \"**/*\"",
+    "prepare": "husky || echo 'husky not installed, skipping prepare'",
     "release": "standard-version"
   },
   "lint-staged": {
     "*.{js,ts}": [
       "eslint --fix",
-      "prettier --write"
+      "prettier --write",
+      "secretlint"
     ],
     "*.{json,md}": [
-      "prettier --write"
+      "prettier --write",
+      "secretlint"
     ]
   },
   "keywords": [],
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.2.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/supertest": "^6.0.3",
@@ -41,11 +45,15 @@
     "jest": "^30.2.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.3",
+    "secretlint": "^11.2.5",
     "standard-version": "^9.5.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
   }
 }
