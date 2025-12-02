@@ -4,14 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node dist/index.js",
+    "start": "node dist/index.js",
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "jest",
     "secretlint": "secretlint \"**/*\"",
-    "prepare": "husky",
+    "prepare": "husky || echo 'husky not installed, skipping prepare'",
     "release": "standard-version"
   },
   "lint-staged": {

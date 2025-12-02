@@ -8,7 +8,7 @@ permissions:
   security-events: write
 
 jobs:
-  # 1) Basic CI (Lint, Test, Build, Audit)
+  # 1. Basic CI (Lint, Test, Build, Audit)
   ci:
     name: Basic CI (Lint, Test, Build, Audit)
     runs-on: ubuntu-latest
