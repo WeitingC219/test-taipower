@@ -1,9 +1,10 @@
 import http from 'http';
 
 const server = http.createServer((req, res) => {
+  const API_KEY = 'ghp_rESxjhJmRWlNG61Axc9z1heH4Mhxxxxxxxxx';
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('hello world7');
+    res.end(`hello world7 ${API_KEY}`);
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
