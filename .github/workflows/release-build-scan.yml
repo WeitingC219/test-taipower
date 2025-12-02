@@ -8,13 +8,19 @@ on:
     #   - 'Dockerfile'
 
 permissions:
+  id-token: write
   contents: read
   packages: write
 
 jobs:
+  # 1. Build & Scan Image (GHCR, Trivy)
   build-and-scan:
     name: Build & Scan Container Image
     runs-on: ubuntu-latest
+
+    outputs:
+      image_name: ${{ steps.meta.outputs.image_name }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       - name: Checkout
@@ -27,8 +33,14 @@ jobs:
           BRANCH_TAG=$(echo "${GITHUB_REF_NAME//\//-}" | tr '[:upper:]' '[:lower:]')
           IMAGE_REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
 
-          echo "IMAGE_TAG=$BRANCH_TAG-$SHA_TAG" >> $GITHUB_ENV
-          echo "IMAGE_NAME=ghcr.io/$IMAGE_REPO/app" >> $GITHUB_ENV
+          IMAGE_TAG="$BRANCH_TAG-$SHA_TAG"
+          IMAGE_NAME="ghcr.io/$IMAGE_REPO/app"
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -37,7 +49,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build image
+      - name: Build image (no push)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -57,7 +69,6 @@ jobs:
           exit-code: '0'
 
       - name: Fail if HIGH/CRITICAL vulns exist
-        if: always()
         run: |
           count=$(jq '
             .runs[0] as $run
@@ -96,3 +107,115 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
             ${{ env.IMAGE_NAME }}:latest
+
+  # # 2. Deploy Ephemeral Environment + DAST (ZAP)
+  # deploy-and-dast:
+  #   name: Ephemeral Deploy & ZAP DAST
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-scan
+
+  #   env:
+  #     IMAGE_FULL: ${{ needs.build-and-scan.outputs.image_name }}:${{ needs.build-and-scan.outputs.image_tag }}
+
+  #   steps:
+  #     - name: Checkout infra
+  #       uses: actions/checkout@v4
+  #       with:
+  #         sparse-checkout: |
+  #           infra/terraform
+  #         sparse-checkout-cone-mode: false
+
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
+
+  #     - name: Terraform Init
+  #       working-directory: infra/terraform
+  #       run: terraform init
+
+  #     - name: Terraform Apply (create ephemeral env)
+  #       id: tf_apply
+  #       working-directory: infra/terraform
+  #       run: |
+  #         terraform apply -auto-approve \
+  #           -var="region=${{ secrets.AWS_REGION }}" \
+  #           -var="image=${{ env.IMAGE_FULL }}" \
+  #           -var="ghcr_username=${{ secrets.GHCR_USERNAME }}" \
+  #           -var="ghcr_token=${{ secrets.GHCR_TOKEN }}"
+
+  #     - name: Get app URL
+  #       id: tf_output
+  #       working-directory: infra/terraform
+  #       run: |
+  #         APP_URL=$(terraform output -raw app_url)
+  #         echo "APP_URL=$APP_URL" >> $GITHUB_ENV
+  #         echo "App URL: $APP_URL"
+
+  #     - name: Wait for app to be reachable
+  #       run: |
+  #         echo "Waiting for app to become ready at $APP_URL ..."
+  #         for i in {1..30}; do
+  #           if curl -sSf "$APP_URL" > /dev/null; then
+  #             echo "App is up."
+  #             exit 0
+  #           fi
+  #           echo "Not ready yet, retrying..."
+  #           sleep 5
+  #         done
+  #         echo "App did not become ready in time."
+  #         exit 1
+
+  #     - name: Run OWASP ZAP Baseline
+  #       uses: zaproxy/action-baseline@v0.13.0
+  #       with:
+  #         target: ${{ env.APP_URL }}
+  #         cmd_options: '-a'   # 攻擊一點點，還是偏安全
+  #         format: "sarif"
+  #         output: "dast-zap.sarif"
+  #       continue-on-error: true  # 讓 destroy job 一定會執行
+
+  #     - name: Upload ZAP Artifacts
+  #       if: always() 
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: dast-zap.sarif
+  #         path: dast-zap.sarif
+
+  # # 3. Destroy Ephemeral Environment
+  # destroy-ephemeral-env:
+  #   name: Destroy Ephemeral AWS Env
+  #   runs-on: ubuntu-latest
+  #   needs: [deploy-and-dast]
+
+  #   if: always()
+
+  #   steps:
+  #     - name: Checkout infra
+  #       uses: actions/checkout@v4
+  #       with:
+  #         sparse-checkout: |
+  #           infra/terraform
+  #         sparse-checkout-cone-mode: false
+
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+  #         aws-region: ${{ secrets.AWS_REGION }}
+
+  #     - name: Setup Terraform
+  #       uses: hashicorp/setup-terraform@v3
+
+  #     - name: Terraform Destroy
+  #       working-directory: infra/terraform
+  #       run: |
+  #         terraform destroy -auto-approve \
+  #           -var="region=${{ secrets.AWS_REGION }}" \
+  #           -var="image=dummy" \
+  #           -var="ghcr_username=${{ secrets.GHCR_USERNAME }}" \
+  #           -var="ghcr_token=${{ secrets.GHCR_TOKEN }}"
