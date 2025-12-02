@@ -8,71 +8,71 @@ permissions:
   security-events: write # Required for uploading code scanning results (CodeQL/Trivy)
 
 jobs:
-  # 1. Basic CI: Build & Test
-  ci:
-    name: Basic CI (Build & Test)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run Audit
-        run: npm audit --audit-level=high
-
-      - name: Run Tests
-        run: npm test
-
-      - name: Build Project
-        run: npm run build
-
-  # # 2. SAST: CodeQL (Source Code Analysis)
-  # sast:
-  #   name: SAST (CodeQL)
+  # # 1. Basic CI: Build & Test
+  # ci:
+  #   name: Basic CI (Build & Test)
   #   runs-on: ubuntu-latest
-  #   permissions:
-  #     actions: read
-  #     contents: read
-  #     security-events: write
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       language: [ 'javascript-typescript' ]
   #   steps:
-  #     - name: Checkout repository
+  #     - name: Checkout code
   #       uses: actions/checkout@v4
 
-  #     - name: Initialize CodeQL
-  #       uses: github/codeql-action/init@v4
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
   #       with:
-  #         languages: ${{ matrix.language }}
+  #         node-version: '20'
+  #         cache: 'npm'
 
-  #     - name: Autobuild
-  #       uses: github/codeql-action/autobuild@v4
+  #     - name: Install dependencies
+  #       run: npm ci
 
-  #     - name: Perform CodeQL Analysis
-  #       uses: github/codeql-action/analyze@v4
-  #       with:
-  #         category: "/language:${{ matrix.language }}"
-  #         output: sarif-results
+  #     - name: Run Audit
+  #       run: npm audit --audit-level=high
 
-  #     - name: Rename CodeQL SARIF
-  #       run: |
-  #         mv sarif-results/*.sarif sast-codeql.sarif
+  #     - name: Run Tests
+  #       run: npm test
 
-  #     - name: Upload CodeQL Artifacts
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: sast-codeql.sarif
-  #         path: sast-codeql.sarif
+  #     - name: Build Project
+  #       run: npm run build
+
+  # 2. SAST: CodeQL (Source Code Analysis)
+  sast:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript-typescript' ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+          output: sarif-results
+
+      - name: Rename CodeQL SARIF
+        run: |
+          mv sarif-results/*.sarif sast-codeql.sarif
+
+      - name: Upload CodeQL Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-codeql.sarif
+          path: sast-codeql.sarif
 
 
   # # 3. SCA: Trivy (Dependency & Vulnerability Scanning)

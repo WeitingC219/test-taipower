@@ -1,6 +1,9 @@
 import http from 'http';
 
 const server = http.createServer((req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const dbPassword = 'SuperSecret123';
+
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('hello world7');
