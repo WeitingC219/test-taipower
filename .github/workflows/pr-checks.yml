@@ -48,24 +48,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
           output: sarif-results
 
+      - name: Rename CodeQL SARIF
+        run: |
+          mv sarif-results/*.sarif sast-codeql.sarif
+
       - name: Upload CodeQL Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: codeql-sarif
-          path: sarif-results
+          name: sast-codeql.sarif
+          path: sast-codeql.sarif
 
 
   # 3. SCA: Trivy (Dependency & Vulnerability Scanning)
@@ -82,20 +86,20 @@ jobs:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'sca-trivy.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'sca-trivy.sarif'
           category: 'trivy'
 
       - name: Upload Trivy Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-sarif
-          path: trivy-results.sarif
+          name: sca-trivy.sarif
+          path: sca-trivy.sarif
 
 
   # 4. Secret Scanning: Gitleaks
@@ -109,15 +113,24 @@ jobs:
           fetch-depth: 0
 
       - name: Run Gitleaks
-        uses: zricethezav/gitleaks-action@master
+        uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ARGS: "--verbose --report-path=gitleaks-report.json"
+
+      - name: List files for debug
+        if: always()
+        run: ls -R
+
+      # - name: Upload Gitleaks to GitHub Security tab
+      #   if: always()
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   with:
+      #     sarif_file: secret-gitleaks.sarif
+      #     category: gitleaks
 
       - name: Upload Gitleaks Artifacts
-        if: always() # Run even if Gitleaks finds secrets (fails)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gitleaks-report
-          path: gitleaks-report.json
-
+          name: secret-gitleaks.sarif
+          path: secret-gitleaks.sarif
