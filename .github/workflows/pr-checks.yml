@@ -59,6 +59,14 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          output: sarif-results
+
+      - name: Upload CodeQL Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: sarif-results
+
 
   # 3. SCA: Trivy (Dependency & Vulnerability Scanning)
   sca:
@@ -83,6 +91,13 @@ jobs:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy'
 
+      - name: Upload Trivy Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sarif
+          path: trivy-results.sarif
+
+
   # 4. Secret Scanning: Gitleaks
   secret-scan:
     name: Secret Scan (Gitleaks)
@@ -97,3 +112,12 @@ jobs:
         uses: zricethezav/gitleaks-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ARGS: "--verbose --report-path=gitleaks-report.json"
+
+      - name: Upload Gitleaks Artifacts
+        if: always() # Run even if Gitleaks finds secrets (fails)
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
