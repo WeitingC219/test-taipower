@@ -54,8 +54,31 @@ jobs:
           output: 'container-trivy.sarif'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
 
+      - name: Fail if HIGH/CRITICAL vulns exist
+        if: always()
+        run: |
+          count=$(jq '
+            .runs[0] as $run
+            | [
+                $run.results[]
+                | .ruleId as $rid
+                | $run.tool.driver.rules[]
+                | select(.id == $rid)
+                | select(.properties.tags[-1] == "HIGH" or .properties.tags[-1] == "CRITICAL")
+              ] | length
+          ' container-trivy.sarif)
+
+          echo "High/Critical vulns: $count"
+
+          if [ "$count" -gt 0 ]; then
+            echo "High/Critical vulnerabilities found, failing pipeline."
+            exit 1
+          else
+            echo "No High/Critical vulnerabilities."
+          fi
+      
       - name: Upload Trivy artifact
         if: always()
         uses: actions/upload-artifact@v4

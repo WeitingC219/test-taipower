@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM node:25-alpine AS builder
+FROM node:25-bookworm-slim AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production (no npm)
-FROM node:25-alpine
+FROM node:25-bookworm-slim
 
 WORKDIR /app
 COPY package*.json ./
