@@ -65,14 +65,33 @@ jobs:
           output: sarif-results
 
       - name: Rename CodeQL SARIF
+        if: always() 
         run: |
           mv sarif-results/*.sarif sast-codeql.sarif
 
       - name: Upload CodeQL Artifacts
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: sast-codeql.sarif
           path: sast-codeql.sarif
+
+      - name: Fail job on HIGH or MEDIUM CodeQL findings
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+
+          # HIGH = security-severity >= 7.0
+          # MEDIUM = security-severity >= 4.0 and < 7.0
+          COUNT=$(jq '[.runs[].results[]
+              | select(.properties["security-severity"] != null)
+              | select(.properties["security-severity"] >= 4.0)
+              ] | length' sast-codeql.sarif)
+
+          echo "CodeQL HIGH/MEDIUM findings: $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::CodeQL found HIGH or MEDIUM severity issues. Failing job."
+            exit 1
+          fi
 
 
   # # 3. SCA: Trivy (Dependency & Vulnerability Scanning)
