@@ -4,9 +4,8 @@ on:
   push:
     branches:
       - 'release/*'
-      - 'main'
-    paths:
-      - 'Dockerfile'
+    # paths:
+    #   - 'Dockerfile'
 
 permissions:
   contents: read
