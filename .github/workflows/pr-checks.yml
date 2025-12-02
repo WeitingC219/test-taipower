@@ -116,7 +116,8 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ARGS: "--verbose --report-format=sarif --report-path=secret-gitleaks.sarif"
+        with:
+          args: "--verbose --report-format=sarif --report-path=secret-gitleaks.sarif"
 
       - name: Upload Gitleaks to GitHub Security tab
         if: always()
